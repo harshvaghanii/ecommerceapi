@@ -1,5 +1,6 @@
 import { User } from "../models/User.js";
 import CryptoJS from "crypto-js";
+import jwt from "jsonwebtoken";
 
 export const register = async (req, res) => {
 	const { username, email, password } = req.body;
@@ -34,7 +35,17 @@ export const login = async (req, res) => {
 			});
 		}
 		const { password, ...otherInformation } = user._doc;
-		res.json(otherInformation);
+		// Creating a token
+		const accessToken = jwt.sign(
+			{
+				id: user._id,
+				isAdmin: user.isAdmin,
+			},
+			process.env.JWT_SEC,
+			{ expiresIn: "3d" }
+		);
+
+		res.json({ ...otherInformation, accessToken: accessToken });
 	} catch (error) {
 		res.status(400).json({
 			success: false,
@@ -43,7 +54,7 @@ export const login = async (req, res) => {
 	}
 };
 
-const encryptPassword = (password) => {
+export const encryptPassword = (password) => {
 	var encryptedPassword = CryptoJS.AES.encrypt(
 		password,
 		process.env.SECRET_PASSPHRASE
@@ -51,7 +62,7 @@ const encryptPassword = (password) => {
 	return encryptedPassword.toString();
 };
 
-const decryptPassword = (encryptedPassword) => {
+export const decryptPassword = (encryptedPassword) => {
 	var password = CryptoJS.AES.decrypt(
 		encryptedPassword,
 		process.env.SECRET_PASSPHRASE
